@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+model User {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  email    String   @unique
+  password String
+  dni      String   @unique
+  name     String
+  lastname String?
+  Student  Student?
+  isActive Boolean  @default(true)
+  role     Role     @default(ADMIN)
+}
+
+model Student {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String   @unique @db.ObjectId
+  user    User     @relation(fields: [userId], references: [id])
+  enrolls Enroll[]
+}
+
+model Enroll {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  enrolledAt DateTime  @default(now())
+  finishedAt DateTime?
+  emittedAt  DateTime?
+  note       Float?
+  studentId  String    @db.ObjectId
+  student    Student   @relation(fields: [studentId], references: [id])
+  courseId   String?   @db.ObjectId
+  course     Course?   @relation(fields: [courseId], references: [id])
+}
+
+model Course {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  description String?
+  endAt       DateTime
+  hours       Int
+  enrolls     Enroll[]
+  academyId   String?  @db.ObjectId
+  academy     Academy? @relation(fields: [academyId], references: [id])
+}
+
+model Academy {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  description String?
+  courses     Course[]
+}
