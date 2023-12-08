@@ -66,7 +66,7 @@ router.get('/:id/enrolls', async (req, res) => {
       orderBy: { finishedAt: "asc" },
       include: {
         course: {
-          select: { name: true }
+          select: { name: true, hours: true }
         }
       }
     })
@@ -130,7 +130,7 @@ router.post('/:id/enroll', async (req, res) => {
       },
       include: {
         enrolls: {
-          include: { course: { select: { name: true } } },
+          include: { course: { select: { name: true, hours: true } } },
           orderBy: { finishedAt: "asc" }
         }
       }

@@ -80,6 +80,7 @@ router.get('/:id', async (req, res) => {
 router.post(
   '/',
   [
+    check('dni', 'you must be type a valid dni').notEmpty(),
     check('name', 'you must be type a valid name').notEmpty(),
     check('email', 'Please enter a valid email').isEmail(),
     check('password', 'Please enter a valid password').isLength({ min: 8 })
@@ -90,13 +91,14 @@ router.post(
       return res.status(400).json({ errors: errors.array() })
     }
     try {
-      const { email, password, name, lastname = '' } = req.body
+      const { email, password, name, lastname = '', dni } = req.body
       //Encrypt the password
       const salt = await bcrypt.genSalt(10)
       const hashpass = await bcrypt.hash(password, salt)
 
       const user = await prisma.user.create({
         data: {
+          dni,
           email,
           password: hashpass,
           name,
