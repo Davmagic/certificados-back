@@ -10,51 +10,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  STUDENT
-  ADMIN
-}
-
-model User {
-  id       String   @id @default(auto()) @map("_id") @db.ObjectId
-  email    String   @unique
-  password String
-  dni      String   @unique
+model Admin {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
   name     String
   lastname String?
-  Student  Student?
-  isActive Boolean  @default(true)
-  role     Role     @default(ADMIN)
+  email    String  @unique
+  password String
 }
 
 model Student {
-  id      String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId  String   @unique @db.ObjectId
-  user    User     @relation(fields: [userId], references: [id])
-  enrolls Enroll[]
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  dni      String   @unique
+  name     String
+  lastname String?
+  partner  String?
+  enrolls  Enroll[]
 }
 
 model Enroll {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
-  enrolledAt DateTime  @default(now())
-  finishedAt DateTime?
-  emittedAt  DateTime?
-  note       Float?
-  studentId  String    @db.ObjectId
-  student    Student   @relation(fields: [studentId], references: [id])
-  courseId   String?   @db.ObjectId
-  course     Course?   @relation(fields: [courseId], references: [id])
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  emittedAt DateTime?
+  bachelor  String?
+  studentId String    @db.ObjectId
+  student   Student   @relation(fields: [studentId], references: [id])
+  courseId  String?   @db.ObjectId
+  course    Course?   @relation(fields: [courseId], references: [id])
+}
+
+enum Mode {
+  VIRTUAL
+  PRESENCIAL
+  HIBRIDO
 }
 
 model Course {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String   @unique
-  description String?
-  endAt       DateTime
-  hours       Int
-  enrolls     Enroll[]
-  academyId   String?  @db.ObjectId
-  academy     Academy? @relation(fields: [academyId], references: [id])
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  mode      Mode
+  hours     Int
+  enrolls   Enroll[]
+  bachelor  String
+  academyId String?  @db.ObjectId
+  academy   Academy? @relation(fields: [academyId], references: [id])
 }
 
 model Academy {

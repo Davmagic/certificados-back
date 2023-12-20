@@ -18,11 +18,32 @@ router.get('/', async (req, res) => {
   try {
     const students = await prisma.student.findMany({
       include: {
-        user: { select: { name: true, lastname: true, email: true, dni: true } },
         _count: { select: { enrolls: true } }
       }
     })
     res.json(students)
+  } catch (error) {
+    res.status(500)
+    PrismaHandlerError(error, res)
+  }
+})
+
+/* 
+  search student
+  methos: GET
+  route: /api/v1/student/search?dni={dni}
+ */
+router.get('/search', async (req, res) => {
+  try {
+    const { dni } = req.query
+    if (!dni) {
+      throw Error('dni is required')
+    }
+    const user = await prisma.student.findUnique({
+      where: { dni },
+      select: { dni: true }
+    })
+    res.json(user)
   } catch (error) {
     res.status(500)
     PrismaHandlerError(error, res)
@@ -40,7 +61,6 @@ router.get('/:id', async (req, res) => {
     const student = await prisma.student.findUnique({
       where: { id },
       include: {
-        user: true,
         _count: { select: { enrolls: true } }
       }
     })
@@ -63,12 +83,8 @@ router.get('/:id/enrolls', async (req, res) => {
     const { id } = req.params
     const enrolls = await prisma.enroll.findMany({
       where: { studentId: id },
-      orderBy: { finishedAt: "asc" },
-      include: {
-        course: {
-          select: { name: true, hours: true }
-        }
-      }
+      orderBy: { emittedAt: "desc" },
+      include: { course: { include: { academy: { select: { name: true } } } } }
     })
     res.json(enrolls)
   } catch (error) {
@@ -83,27 +99,17 @@ router.get('/:id/enrolls', async (req, res) => {
 */
 router.post('/', async (req, res) => {
   try {
-    const { dni, email, password, name, lastname = '' } = req.body
-    //Encrypt the password
-    const salt = await bcrypt.genSalt(10)
-    const hashpass = await bcrypt.hash(password, salt)
+    const { dni, partner, name, lastname = '' } = req.body
 
     const student = await prisma.student.create({
       data: {
-        user: {
-          create: {
-            dni,
-            email,
-            password: hashpass,
-            name,
-            lastname,
-            role: "STUDENT"
-          }
-        },
+        dni,
+        name,
+        lastname,
+        partner
       },
-      include: { user: true }
     })
-    res.json(student)
+    res.status(201).json(student)
   } catch (error) {
     res.status(500)
     PrismaHandlerError(error, res)
@@ -127,15 +133,60 @@ router.post('/:id/enroll', async (req, res) => {
             data: enrolls
           }
         }
-      },
-      include: {
-        enrolls: {
-          include: { course: { select: { name: true, hours: true } } },
-          orderBy: { finishedAt: "asc" }
-        }
       }
     })
     res.json(student)
+  } catch (error) {
+    res.status(500)
+    PrismaHandlerError(error, res)
+  }
+})
+
+/*
+  update user
+  method: PUT
+  route: /api/v1/students/:id
+*/
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { dni, partner, name, lastname = '' } = req.body
+
+    const currentUser = await prisma.student.findUnique({ where: { id } })
+
+    if (currentUser.dni !== dni) {
+      const alreadyUser = await prisma.student.findUnique({ where: { dni } })
+      if (alreadyUser) {
+        return res.status(400).send({ errors: [{ msg: 'already dni exists', code: 'DuplicatedValue' }] })
+      }
+    }
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        dni, name, lastname, partner
+      }
+    })
+    res.json(user)
+  } catch (error) {
+    res.status(500)
+    PrismaHandlerError(error, res)
+  }
+})
+
+/*
+  delete user
+  method: DELETE
+  route: /api/v1/students/:id
+*/
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const transation = await prisma.$transaction([
+      prisma.enroll.deleteMany({ where: { studentId: id } }),
+      prisma.student.delete({ where: { id } })
+    ])
+    res.json(transation)
   } catch (error) {
     res.status(500)
     PrismaHandlerError(error, res)

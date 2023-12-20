@@ -16,7 +16,10 @@ router.use(auth)
 router.get('/', async (req, res) => {
   try {
     const courses = await prisma.course.findMany({
-      include: { _count: { select: { enrolls: true } } },
+      include: {
+        academy: { select: { name: true } },
+        _count: { select: { enrolls: true } }
+      },
       orderBy: { name: "asc" }
     })
     res.json(courses)
@@ -31,7 +34,10 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params
     const course = await prisma.course.findUnique({
       where: { id },
-      include: { _count: { select: { enrolls: true } } }
+      include: {
+        academy: { select: { name: true } },
+        _count: { select: { enrolls: true } }
+      }
     })
     if (!course) {
       return res.status(404).json({ errors: [{ msg: 'Course not found' }] })
@@ -48,12 +54,8 @@ router.get('/:id/enrolls', async (req, res) => {
     const { id } = req.params
     const enrolls = await prisma.enroll.findMany({
       where: { courseId: id },
-      orderBy: { finishedAt: "asc" },
-      include: {
-        student: {
-          include: { user: { select: { name: true, lastname: true, email: true, isActive: true } } }
-        }
-      }
+      orderBy: { emittedAt: "desc" },
+      include: { student: true }
     })
     res.json(enrolls)
   } catch (error) {
@@ -63,18 +65,8 @@ router.get('/:id/enrolls', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name, description = '', endAt, hours } = req.body
-    const course = await prisma.course.create({
-      data: {
-        endAt,
-        name,
-        description,
-        hours: Number(hours) || 0
-      },
-      include: {
-        _count: { select: { enrolls: true } }
-      }
-    })
+    const data = req.body
+    const course = await prisma.course.create({ data })
     res.status(201).json(course)
   } catch (error) {
     res.status(500)
@@ -85,10 +77,10 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const { name, description = '', endAt } = req.body
+    const data = req.body
     const course = await prisma.course.update({
       where: { id },
-      data: { name, description, endAt }
+      data
     })
     res.json(course)
   } catch (error) {

@@ -19,7 +19,7 @@ router.use(auth)
 */
 router.get('/', async (req, res) => {
   try {
-    const users = await prisma.user.findMany()
+    const users = await prisma.admin.findMany()
     res.json(users)
   } catch (error) {
     res.status(500)
@@ -34,16 +34,12 @@ router.get('/', async (req, res) => {
  */
 router.get('/search', async (req, res) => {
   try {
-    const { email, dni } = req.query
-    if(!email && !dni){
-      throw Error('email or dni is required')
+    const { email } = req.query
+    if (!email) {
+      throw Error('email is required')
     }
-    const where = {}
-    if(email) { where.email = email }
-    if(dni) { where.dni = dni }
-
-    const user = await prisma.user.findUnique({
-      where
+    const user = await prisma.admin.findUnique({
+      where: { email }
     })
     res.json(user)
   } catch (error) {
@@ -60,7 +56,7 @@ router.get('/search', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const user = await prisma.user.findUnique({
+    const user = await prisma.admin.findUnique({
       where: { id }
     })
     if (!user) {
@@ -80,7 +76,6 @@ router.get('/:id', async (req, res) => {
 router.post(
   '/',
   [
-    check('dni', 'you must be type a valid dni').notEmpty(),
     check('name', 'you must be type a valid name').notEmpty(),
     check('email', 'Please enter a valid email').isEmail(),
     check('password', 'Please enter a valid password').isLength({ min: 8 })
@@ -91,14 +86,13 @@ router.post(
       return res.status(400).json({ errors: errors.array() })
     }
     try {
-      const { email, password, name, lastname = '', dni } = req.body
+      const { email, password, name, lastname = '' } = req.body
       //Encrypt the password
       const salt = await bcrypt.genSalt(10)
       const hashpass = await bcrypt.hash(password, salt)
 
-      const user = await prisma.user.create({
+      const user = await prisma.admin.create({
         data: {
-          dni,
           email,
           password: hashpass,
           name,
@@ -125,21 +119,21 @@ router.put(
   async (req, res) => {
     try {
       const { id } = req.params
-      const { dni = '', email, name, lastname = '' } = req.body
+      const { email, name, lastname = '' } = req.body
 
-      const currentUser = await prisma.user.findUnique({ where: { id } })
+      const currentUser = await prisma.admin.findUnique({ where: { id } })
 
       if (currentUser.email !== email) {
-        const alreadyUser = await prisma.user.findUnique({ where: { email } })
+        const alreadyUser = await prisma.admin.findUnique({ where: { email } })
         if (alreadyUser) {
           return res.status(400).send({ errors: [{ msg: 'already email exists' }] })
         }
       }
 
-      const user = await prisma.user.update({
+      const user = await prisma.admin.update({
         where: { id },
         data: {
-          dni, email, name, lastname
+          email, name, lastname
         }
       })
       res.json(user)
@@ -157,30 +151,8 @@ router.put(
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const deleteTransaction = [
-      prisma.user.delete({
-        where: { id }
-      })
-    ]
-    const student = await prisma.student.findUnique({
-      where: { userId: id }
-    })
-    if (student) {
-      deleteTransaction.unshift(
-        prisma.enroll.deleteMany({
-          where: {
-            studentId: student.id
-          }
-        }),
-        prisma.student.deleteMany({
-          where: {
-            userId: id
-          }
-        })
-      )
-    }
-    const transation = await prisma.$transaction(deleteTransaction)
-    res.json(transation)
+    const admin = await prisma.admin.delete({ where: { id } })
+    res.json(admin)
   } catch (error) {
     res.status(500)
     PrismaHandlerError(error, res)

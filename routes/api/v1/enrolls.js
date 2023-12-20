@@ -15,8 +15,8 @@ router.get('/', auth, async (req, res) => {
   try {
     const enrolls = await prisma.enroll.findMany({
       include: {
-        course: true,
-        student: { include: { user: true } }
+        course: { include: { academy: { select: { name: true } } } },
+        student: true
       }
     })
     res.json(enrolls)
@@ -44,11 +44,11 @@ router.get('/search', async (req, res) => {
     }
     const enrolls = await prisma.enroll.findMany({
       where: {
-        student: { is: { user: filter } }
+        student: filter
       },
       include: {
-        course: { select: { name: true, description: true, hours: true } },
-        student: { select: { user: { select: { name: true, lastname: true, dni: true } } } }
+        course: { include: { academy: { select: { name: true } } } },
+        student: true
       },
     })
     res.json(enrolls)
@@ -64,8 +64,8 @@ router.get('/:id', async (req, res) => {
     const enrolls = await prisma.enroll.findUnique({
       where: { id },
       include: {
-        course: { select: { name: true, description: true, hours: true } },
-        student: { select: { user: { select: { name: true, lastname: true, dni: true } } } }
+        course: { include: { academy: { select: { name: true } } } },
+        student: true
       }
     })
     res.json(enrolls)
@@ -77,14 +77,24 @@ router.get('/:id', async (req, res) => {
 
 /* 
   update enroll
-  methos: POST
-  route: /api/v1/enrolls
+  methos: PUT
+  route: /api/v1/enrolls/:id
 */
-router.patch('/:id', auth, async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
-
+    const { id } = req.params
+    const { emittedAt, bachelor } = req.body
+    const enroll = await prisma.enroll.update({
+      where: { id },
+      data: {
+        emittedAt,
+        bachelor,
+      }
+    })
+    res.json(enroll)
   } catch (error) {
-
+    res.status(500)
+    PrismaHandlerError(error, res)
   }
 })
 
