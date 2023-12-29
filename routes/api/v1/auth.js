@@ -17,11 +17,11 @@ const prisma = new PrismaClient({ log: ['query', 'info', 'warn', 'error'], })
 
 router.get("/", auth, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
+    const admin = await prisma.admin.findUnique({
       where: { id: req.user.id },
       select: { id: true, email: true, isActive: true, name: true, lastname: true, role: true }
     })
-    res.json(user)
+    res.json(admin)
   } catch (error) {
     res.status(500).send("Server Error")
   }
@@ -43,15 +43,15 @@ router.post(
     const { email, password } = req.body
 
     try {
-      //Check if user already exists
-      let user = await prisma.user.findUnique({ where: { email } })
-      if (!user) {
+      //Check if admin already exists
+      let admin = await prisma.admin.findUnique({ where: { email } })
+      if (!admin) {
         return res
           .status(400)
           .json({ errors: [{ msg: "Invalid credentials" }] })
       }
 
-      const passwordMatch = await bcrypt.compare(password, user.password)
+      const passwordMatch = await bcrypt.compare(password, admin.password)
 
       if (!passwordMatch) {
         return res
@@ -62,7 +62,7 @@ router.post(
       //Return the webtoken
       const payload = {
         user: {
-          id: user.id,
+          id: admin.id,
         },
       }
 
@@ -81,12 +81,13 @@ router.post(
       })
       res.setHeader('Set-Cookie', serialized)
       res.json({
-        name: user.name,
-        lastname: user.lastname,
-        email: user.email,
+        name: admin.name,
+        lastname: admin.lastname,
+        email: admin.email,
         token
       })
     } catch (error) {
+      console.error(error)
       res.status(500)
       PrismaHandlerError(error, res)
     }

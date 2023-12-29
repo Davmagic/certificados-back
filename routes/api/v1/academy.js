@@ -60,8 +60,8 @@ router.put('/:id', async (req, res) => {
     const currentAcademy = await prisma.academy.findUnique({ where: { id } })
 
     if (currentAcademy.name !== name) {
-      const alreadyUser = await prisma.academy.findUnique({ where: { name } })
-      if (alreadyUser) {
+      const alreadyAcademy = await prisma.academy.findUnique({ where: { name } })
+      if (alreadyAcademy) {
         return res.status(400).send({ errors: [{ msg: 'already name exists', code: 'DuplicatedValue' }] })
       }
     }
