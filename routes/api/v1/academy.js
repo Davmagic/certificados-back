@@ -87,3 +87,5 @@ router.delete('/:id', async (req, res) => {
     PrismaHandlerError(error, res)
   }
 })
+
+module.exports = router
