@@ -29,7 +29,7 @@ router.get('/:id', async (req, res) => {
     const academy = await prisma.academy.findUnique({
       where: { id },
       include: {
-        courses: { include: { _count: { select: { enrolls: true } } } }
+        courses: true
       }
     })
     res.json(academy)
@@ -41,9 +41,9 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { name } = req.body
+    const { name, description = '' } = req.body
     if (!name) return res.status(400).json({ errors: [{ msg: 'name is required' }] })
-    const academy = await prisma.academy.create({ data: { name } })
+    const academy = await prisma.academy.create({ data: { name, description } })
     res.json(academy)
   } catch (error) {
     res.status(500)

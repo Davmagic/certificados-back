@@ -74,7 +74,7 @@ router.get('/:id', async (req, res) => {
 
 /* 
   get enrolls by student
-  method POST
+  method GET
   route: /api/v1/students/:id/enrolls
 */
 router.get('/:id/enrolls', async (req, res) => {
@@ -83,7 +83,7 @@ router.get('/:id/enrolls', async (req, res) => {
     const enrolls = await prisma.enroll.findMany({
       where: { studentId: id },
       orderBy: { emittedAt: "desc" },
-      include: { course: { include: { academy: { select: { name: true } } } } }
+      include: { student: true, course: { include: { academy: { select: { name: true } } } } }
     })
     res.json(enrolls)
   } catch (error) {
@@ -150,6 +150,7 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params
     const { dni, partner, name, lastname = '' } = req.body
+    console.log(req.body);
 
     const currentUser = await prisma.student.findUnique({ where: { id } })
 
@@ -160,7 +161,7 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    const user = await prisma.user.update({
+    const user = await prisma.student.update({
       where: { id },
       data: {
         dni, name, lastname, partner

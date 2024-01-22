@@ -49,13 +49,19 @@ router.get('/:id', async (req, res) => {
   }
 })
 
+/* 
+  get all enrolls by course id
+  method: GET
+  route: /api/v1/courses/:id/enrolls
+*/
+
 router.get('/:id/enrolls', async (req, res) => {
   try {
     const { id } = req.params
     const enrolls = await prisma.enroll.findMany({
       where: { courseId: id },
       orderBy: { emittedAt: "desc" },
-      include: { student: true }
+      include: { student: true, course: { include: { academy: { select: { name: true } } } } }
     })
     res.json(enrolls)
   } catch (error) {
